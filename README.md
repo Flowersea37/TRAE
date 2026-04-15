@@ -1,51 +1,20 @@
 # Escaping the Echo Trap: On Credit Assignment Failure in Multi-turn LLM Self-Reflection
 
-<div align="center">
-  <img src="https://raw.githubusercontent.com/PeterGriffinJin/Search-R1/main/public/logo.png" alt="logo" width="300"/>
-</div>
 
-<p align="center">
-  <a href="https://arxiv.org/abs/2503.09516">
-    <img src="https://img.shields.io/badge/Paper1-blue?style=for-the-badge" alt="Button1"/>
-  </a>
-  <a href="https://arxiv.org/abs/2505.15117">
-    <img src="https://img.shields.io/badge/Paper2-green?style=for-the-badge" alt="Button2"/>
-  </a>
-  <a href="https://huggingface.co/collections/PeterJinGo/search-r1-67d1a021202731cb065740f5">
-    <img src="https://img.shields.io/badge/Resources-orange?style=for-the-badge" alt="Button3"/>
-  </a>
-  <a href="https://x.com/BowenJin13/status/1895544294473109889">
-    <img src="https://img.shields.io/badge/Tweet-red?style=for-the-badge" alt="Button4"/>
-  </a>
-  <a href="https://wandb.ai/peterjin/Search-R1-v0.2">
-    <img src="https://img.shields.io/badge/Logs-purple?style=for-the-badge" alt="Button5"/>
-  </a>
-</p>
-
-
-<!-- <strong>Search-R1</strong> is a reinforcement learning framework for <em>training reasoning and searching (tool-call) interleaved LLMs</em>.  -->
-<!-- We built upon [veRL](https://github.com/volcengine/verl). -->
-**Search-R1** is a reinforcement learning framework designed for training **reasoning-and-searching interleaved LLMs**—language models that learn to reason and make tool calls (e.g., to search engines) in a coordinated manner.
-
-<!-- It can be seen as an extension of <strong>DeepSeek-R1(-Zero)</strong> with interleaved search engine calling and an opensource RL training-based solution for <strong>OpenAI DeepResearch</strong>. -->
-Built upon [veRL](https://github.com/volcengine/verl), Search-R1 extends the ideas of **DeepSeek-R1(-Zero)** by incorporating interleaved search engine access and provides a fully open-source RL training pipeline. It serves as an alternative and open solution to **OpenAI DeepResearch**, enabling research and development in tool-augmented LLM reasoning.
-
-<!-- Through RL (rule-based outcome reward), the 3B **base** LLM (both Qwen2.5-3b-base and Llama3.2-3b-base) develops reasoning and search engine calling abilities all on its own. -->
-
-We support different RL methods (e.g., PPO, GRPO, reinforce), different LLMs (e.g., llama3, Qwen2.5, etc) and different search engines (e.g., local sparse/dense retrievers and online search engines).
-
-Paper: [link1](https://arxiv.org/pdf/2503.09516), [link2](https://arxiv.org/abs/2505.15117); Model and data: [link](https://huggingface.co/collections/PeterJinGo/search-r1-67d1a021202731cb065740f5); Twitter thread: [link](https://x.com/BowenJin13/status/1895544294473109889); Full experiment log: [prelim](https://wandb.ai/peterjin/Search-R1-open); [v0.1](https://wandb.ai/peterjin/Search-R1-nq_hotpotqa_train); [v0.2](https://wandb.ai/peterjin/Search-R1-v0.2); [v0.3](https://wandb.ai/peterjin/Search-R1-v0.3). Details about these logs and methods can be find [here](https://github.com/PeterGriffinJin/Search-R1/blob/main/docs/experiment_log.md).
-
-
-!example.png
+## Overview
+## Results
 
 ## Links
 
-- [Installation](#installation)
-- [Training](#training)
-- [Evaluation](#evaluation)
-- [Acknowledgement](#acknowledgement)
-- [Citations](#citations)
+- [Escaping the Echo Trap: On Credit Assignment Failure in Multi-turn LLM Self-Reflection](#escaping-the-echo-trap-on-credit-assignment-failure-in-multi-turn-llm-self-reflection)
+  - [Overview](#overview)
+  - [Results](#results)
+  - [Links](#links)
+  - [Installation](#installation)
+  - [Training](#training)
+  - [Evaluation](#evaluation)
+  - [Acknowledgement](#acknowledgement)
+  - [Citations](#citations)
 
 ## Installation
 ```bash
