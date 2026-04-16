@@ -66,10 +66,5 @@ The codebase is built upon [Deepseek-R1](https://github.com/deepseek-ai/DeepSeek
 
 ## Citations
 ```bibtex
-@article{jin2025empirical,
-  title={An Empirical Study on Reinforcement Learning for Reasoning-Search Interleaved LLM Agents},
-  author={Jin, Bowen and Yoon, Jinsung and Kargupta, Priyanka and Arik, Sercan O and Han, Jiawei},
-  journal={arXiv preprint arXiv:2505.15117},
-  year={2025}
-}
+
 ```

@@ -1,6 +1,6 @@
 hydra:
   searchpath:
-    - file:///workspace/mnt/lxb_work/xgq_work/verl2/verl/trainer/config
+    - file:///verl/verl/trainer/config
 
 defaults:
   - ppo_trainer

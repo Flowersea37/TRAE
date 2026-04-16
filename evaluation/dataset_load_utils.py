@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 def load_dataset(dataset_name):
     dataset = []
     if "math-500" in dataset_name.lower():
-        dataset_path = "/workspace/mnt/lxb_work/hf_dir/hf_dataset/MATH-500/test.jsonl"
+        dataset_path = " hf_dir/hf_dataset/MATH-500/test.jsonl"
         with open(dataset_path,"r") as f:
             for line in f:
                 data = json.loads(line)
@@ -22,7 +22,7 @@ def load_dataset(dataset_name):
                     "id" : data["unique_id"]
                 })
     elif "aime25" in dataset_name.lower():
-        dataset_path = "/workspace/mnt/lxb_work/hf_dir/hf_dataset/aime25/test.jsonl"
+        dataset_path = " hf_dir/hf_dataset/aime25/test.jsonl"
         with open(dataset_path,"r") as f:
             for line in f:
                 data = json.loads(line)
@@ -32,7 +32,7 @@ def load_dataset(dataset_name):
                     "id" : data["id"]
                 })
     elif "aime24" in dataset_name.lower():
-        dataset_path = "/workspace/mnt/lxb_work/hf_dir/hf_dataset/aime24"
+        dataset_path = " hf_dir/hf_dataset/aime24"
         dataset_data = ld(dataset_path, split="train")
         dataset = []
         for data in dataset_data:
@@ -42,7 +42,7 @@ def load_dataset(dataset_name):
                 "id" : data["id"]
             })
     elif "gsm8k" in dataset_name.lower():
-        dataset_path = "/workspace/mnt/lxb_work/hf_dir/hf_dataset/gsm8k"
+        dataset_path = " hf_dir/hf_dataset/gsm8k"
         dataset_data = ld(dataset_path, "main",split="test")
         dataset = []
         for data in dataset_data:
@@ -52,7 +52,7 @@ def load_dataset(dataset_name):
                 "id" : data["question"]
             })
     elif "olympiad" in dataset_name.lower():
-        dataset_path = "/workspace/mnt/lxb_work/hf_dir/hf_dataset/olympiad"
+        dataset_path = " hf_dir/hf_dataset/olympiad"
         dataset_data = ld(dataset_path, split="test")
         dataset = []
         for data in dataset_data:
@@ -62,7 +62,7 @@ def load_dataset(dataset_name):
                 "id" : data["id"]
             })
     elif "amc23" in dataset_name.lower():
-        dataset_path = "/workspace/mnt/lxb_work/hf_dir/hf_dataset/AMC23"
+        dataset_path = " hf_dir/hf_dataset/AMC23"
         dataset_data = ld(dataset_path, split="test")
         dataset = []
         for data in dataset_data:
@@ -72,7 +72,7 @@ def load_dataset(dataset_name):
                 "id" : data["id"]
             })
     elif "minervamath" in dataset_name.lower():
-        dataset_path = "/workspace/mnt/lxb_work/hf_dir/hf_dataset/MinervaMath/test.jsonl"
+        dataset_path = " hf_dir/hf_dataset/MinervaMath/test.jsonl"
         with open(dataset_path,"r") as f:
             for line in f:
                 data = json.loads(line)
@@ -82,7 +82,7 @@ def load_dataset(dataset_name):
                     "id" : data["question"]
                 })
     elif "gsm8k" in dataset_name.lower():
-        dataset_path = "/workspace/mnt/lxb_work/hf_dir/hf_dataset/DeepMath-103K"
+        dataset_path = " hf_dir/hf_dataset/DeepMath-103K"
         dataset = []
         dataset_data = ld(dataset_path,"main")
         for data in dataset_data["test"]:
@@ -92,7 +92,7 @@ def load_dataset(dataset_name):
                 "id" : data["question"],
             })
     elif "deepmath" in dataset_name.lower():
-        dataset_path = "/workspace/mnt/lxb_work/hf_dir/hf_dataset/DeepMath-103K"
+        dataset_path = " hf_dir/hf_dataset/DeepMath-103K"
         dataset = []
         dataset_data = ld(dataset_path, split="train")
         for data in dataset_data:
@@ -102,7 +102,7 @@ def load_dataset(dataset_name):
                 "id" : data["question"],
             })
     elif "supergpqa" in dataset_name.lower():
-        dataset_path = "/workspace/mnt/lxb_work/hf_dir/hf_dataset/SuperGPQA"
+        dataset_path = " hf_dir/hf_dataset/SuperGPQA"
         dataset = []
         dataset_data = ld(dataset_path, split="train")
         for data in dataset_data:
@@ -113,7 +113,7 @@ def load_dataset(dataset_name):
                 "id" : data["question"],
             })
     elif "mmlupro" in dataset_name.lower():
-        dataset_path = "/workspace/mnt/lxb_work/hf_dir/hf_dataset/MMLU-Pro/data"
+        dataset_path = " hf_dir/hf_dataset/MMLU-Pro/data"
         dataset = []
         dataset_data = ld(dataset_path, split="test")
         for data in dataset_data:

@@ -1,5 +1,5 @@
 cd evaluation
-REWARD_PATH="/workspace/mnt/lxb_work/hf_dir/hf_model/RM/AceMath-7B-RM"
+REWARD_PATH=""
 
 # 记录开始时间
 START_TIME=$(date +%s)
@@ -11,7 +11,7 @@ ray stop --force
 ray start --head --num-gpus=8 --port=6342
 
 export VLLM_WORKER_MULTIPROC_METHOD=spawn
-MODEL_PATH="/workspace/mnt/lxb_work/xgq_work/TRAE_upload/save_models/qwen3-8b-tree-best-config-10k-epoch1-dis05-tsp1-tokenloss-while-style-releasetest-step117"
+MODEL_PATH=""
 
 # 计时 Python 程序执行时间
 PYTHON_START_TIME=$(date +%s)

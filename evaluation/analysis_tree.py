@@ -1,9 +1,8 @@
 import json
 import re
 
-# datapath = "/workspace/mnt/lxb_work/dlx_work/dynamic_reflection/model_eval/outputs/eval-1-3-qwen3-8b-grpo-clip-higher-step75-AceMath-7B-RM-temp0.6-topp0.95-max-token5000/aime24/eval.json"
 reflect_times = 3
-raw_path = "/workspace/mnt/lxb_work/xgq_work/TRAE_upload/evaluation/evaluation/outputs/eval-3-qwen3-8b-tree-best-config-10k-epoch1-dis05-tsp1-tokenloss-while-style-releasetest-step117-max-token5000/"
+raw_path = "/"
 
 def extract_tags(text):
     """

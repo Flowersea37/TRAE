@@ -61,13 +61,13 @@ RUNTIME_ENV=${RUNTIME_ENV:-"${WORKING_DIR}/config/runtime_env.yaml"}
 NNODES=${NNODES:-1}
 # Paths
 # RAY_DATA_HOME=${RAY_DATA_HOME:-"${HOME}/verl"}
-MODEL_PATH=${MODEL_PATH:-"/workspace/mnt/lxb_work/hf_dir/hf_model/Qwen/Qwen3-8B-Base"}
+MODEL_PATH=${MODEL_PATH:-"Qwen3-8B-Base"}
 CKPTS_DIR=${CKPTS_DIR:-"${WORKING_DIR}/saves_ckp/${project_name}/${exp_name}"}
 # TRAIN_FILE=${TRAIN_FILE:-"/workspace/mnt/lxb_work/hf_dir/hf_dataset/Dapomath17k/data/dapo-math-17k.parquet"}
 # TEST_FILE=${TEST_FILE:-"/workspace/mnt/lxb_work/hf_dir/hf_dataset/AIME-24/data/aime-2024.parquet"}
-TRAIN_FILE="/workspace/mnt/lxb_work/xgq_work/TRAE/data/test_train_10k.parquet"
+TRAIN_FILE="data/test_train_10k.parquet"
 # train_data_path="/workspace/mnt/lxb_work/dlx_work/multi_verl/data/dapo17k/multi_reflect_train.parquet"
-TEST_FILE="/workspace/mnt/lxb_work/xgq_work/TRAE/data/test_valid_10k.parquet"
+TEST_FILE="data/test_valid_10k.parquet"
 # Algorithm
 temperature=1.0
 top_p=1.0
