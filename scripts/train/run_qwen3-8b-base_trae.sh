@@ -1,6 +1,8 @@
 # Tested successfully on the hiyouga/verl:ngc-th2.6.0-cu126-vllm0.8.4-flashinfer0.2.2-cxx11abi0 image.
 # It outperforms the Qwen2 7B base model by two percentage points on the test set of GSM8K.
 
+# !!!!!!replace the model path before run
+
 set -xeuo pipefail
 
 project_name='GRPO-verl0.7.0release-Test'

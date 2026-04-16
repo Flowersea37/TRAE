@@ -57,7 +57,7 @@ bash scripts/verl_merge_fsdb_2.sh
 # eval
 bash scripts/eval.sh
 
-# modify the raw_path in analysis_tree.py, to see the evaluation result
+# To see the evaluation result, modify the raw_path in analysis_tree.py.
 python evaluation/analysis_tree.py
 ```
 ## Acknowledgement

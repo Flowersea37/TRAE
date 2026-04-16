@@ -1,4 +1,5 @@
 export CUDA_VISIBLE_DEVICES=""
+# !!!!!!replace the model path before run
 
 python -m verl.model_merger merge \
     --backend fsdp \

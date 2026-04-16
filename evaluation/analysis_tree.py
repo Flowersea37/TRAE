@@ -2,6 +2,8 @@ import json
 import re
 
 reflect_times = 3
+
+# replace raw_path brfore run
 raw_path = "/"
 
 def extract_tags(text):
