@@ -269,7 +269,7 @@ def cal_adv_based_step_reward(
             id2tree_reward[index] = {}
             id2level_indices[index] = defaultdict(set)
 
-        for depth, (node_idx, reward_value) in enumerate(path, start=1):
+        for depth, (node_idx, reward_value) in enumerate(zip(path, step_reward), start=1):
             existing_value = id2tree_reward[index].get(node_idx)
             if existing_value is not None:
                 assert existing_value == reward_value
