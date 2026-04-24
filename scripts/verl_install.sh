@@ -20,10 +20,10 @@ pip install math_verify
 """
 solve RuntimeError: Failed to complete async request to release_memory_occupation after 3 attempts
 """
-pip install "uvicorn<0.34.0" "starlette<0.42.0"
+pip install "uvicorn<0.34.0" "starlette<0.42.0"  "accelerate>=1.0.0"
 
 pip install numpy==2.2.6
-
+cd verl
 pip install --no-deps -e .
 
 """
