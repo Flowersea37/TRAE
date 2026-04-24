@@ -76,6 +76,8 @@ def compute_advantage(
     num_repeat: int = 1,
     norm_adv_by_std_in_grpo: bool = True,
     config: Optional[AlgoConfig] = None,
+    branch_per_node: Optional[int] = None,
+    max_depth: Optional[int] = None,
 ) -> DataProto:
     """Compute advantage estimates for policy optimization.
 
@@ -132,6 +134,19 @@ def compute_advantage(
     elif adv_estimator == AdvantageEstimator.GRPO_TREE_DYNAMIC_ADVANTAGE:
         # Initialize the mask for GRPO calculation
         grpo_calculation_mask = data.batch["response_mask"]
+        batch_size = len(data.batch["response_mask"])
+        batch_branch_per_node = data.non_tensor_batch.get("branch_per_node")
+        batch_max_depth = data.non_tensor_batch.get("max_depth")
+
+        if batch_branch_per_node is None:
+            if branch_per_node is None:
+                raise ValueError("branch_per_node is required for grpo_tree_dynamic_advantage")
+            batch_branch_per_node = np.array([branch_per_node for _ in range(batch_size)], dtype=object)
+
+        if batch_max_depth is None:
+            if max_depth is None:
+                raise ValueError("max_depth is required for grpo_tree_dynamic_advantage")
+            batch_max_depth = np.array([max_depth for _ in range(batch_size)], dtype=object)
 
         # Call compute_grpo_outcome_advantage with parameters matching its definition
         # breakpoint()
@@ -139,8 +154,8 @@ def compute_advantage(
             token_level_rewards=data.batch["token_level_rewards"],
             step_reward=data.non_tensor_batch["step_reward"],
             traj_end_index=data.non_tensor_batch["traj_end_index"],
-            branch_per_node=data.non_tensor_batch["branch_per_node"],
-            max_depth=data.non_tensor_batch["max_depth"],
+            branch_per_node=batch_branch_per_node,
+            max_depth=batch_max_depth,
             response_mask=grpo_calculation_mask,
             index=data.non_tensor_batch["uid"],
             norm_adv_by_std_in_grpo=norm_adv_by_std_in_grpo,
@@ -631,6 +646,8 @@ class RayDAPOTrainer(RayPPOTrainer):
                             num_repeat=self.config.actor_rollout_ref.rollout.n,
                             norm_adv_by_std_in_grpo=norm_adv_by_std_in_grpo,
                             config=self.config.algorithm,
+                            branch_per_node=self.config.branch_per_node,
+                            max_depth=self.config.max_turns,
                         )
 
                     # update critic
