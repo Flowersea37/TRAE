@@ -211,54 +211,90 @@ def get_kl_controller(kl_ctrl):
         raise NotImplementedError
 
 
-def cal_part(tree_reward,begin,end,norm_adv_by_std_in_grpo,epsilon):
-    Level_arr = torch.tensor(tree_reward[begin:end], dtype=torch.float32)
-    for i in range(begin,end):
+def _normalize_level(
+    tree_reward: dict[int, float],
+    level_indices: list[int],
+    norm_adv_by_std_in_grpo: bool,
+    epsilon: float,
+) -> None:
+    level_values = torch.tensor([tree_reward[idx] for idx in level_indices], dtype=torch.float32)
+    level_mean = torch.mean(level_values)
+    level_std = torch.std(level_values)
+    for idx in level_indices:
+        centered_value = tree_reward[idx] - level_mean
         if norm_adv_by_std_in_grpo:
-            tree_reward[i] = (tree_reward[i] - torch.mean(Level_arr)) / (torch.std(Level_arr) + epsilon)
+            tree_reward[idx] = float(centered_value / (level_std + epsilon))
         else:
-            tree_reward[i] = (tree_reward[i] - torch.mean(Level_arr))
+            tree_reward[idx] = float(centered_value)
 
-def cal_adv_based_step_reward(indexs,step_rewards,traj_end_indexs,norm_adv_by_std_in_grpo,epsilon):
 
+def _collect_path_to_root(node_index: int, branch_per_node: int) -> list[int]:
+    path = []
+    current_index = int(node_index)
+    while current_index > 1:
+        path.append(current_index)
+        current_index //= branch_per_node
+    return path[::-1]
+
+
+def cal_adv_based_step_reward(
+    indexs,
+    step_rewards,
+    traj_end_indexs,
+    branch_per_node,
+    max_depth,
+    norm_adv_by_std_in_grpo,
+    epsilon,
+):
     assert len(indexs) == len(step_rewards) == len(traj_end_indexs)
-    # 收集一棵树的step reward
-    # breakpoint()
-    id2tree_reward = dict()
+    assert branch_per_node >= 2, f"branch_per_node must be >= 2, got {branch_per_node}"
+    assert max_depth >= 1, f"max_depth must be >= 1, got {max_depth}"
+
+    id2tree_reward: dict[Any, dict[int, float]] = {}
+    id2level_indices: dict[Any, dict[int, set[int]]] = {}
+
     for i in range(len(indexs)):
         index = indexs[i]
         step_reward = step_rewards[i]
-        traj_end_index = traj_end_indexs[i]
+        traj_end_index = int(traj_end_indexs[i])
+        path = _collect_path_to_root(traj_end_index, branch_per_node)
+
+        if len(path) != len(step_reward):
+            raise ValueError(
+                f"step_reward length {len(step_reward)} does not match path length {len(path)} "
+                f"for uid={index}, traj_end_index={traj_end_index}"
+            )
 
         if index not in id2tree_reward:
-            id2tree_reward[index] = [-100 for i in range(16)]
-        
-        # 清楚一下这里会不会有bug
-        step_index = -1
-        while traj_end_index > 1:
-            if id2tree_reward[index][traj_end_index] != -100:
-                assert id2tree_reward[index][traj_end_index] == step_reward[step_index]
-            else:
-                id2tree_reward[index][traj_end_index] = step_reward[step_index]
-            traj_end_index = traj_end_index // 2
-            step_index -= 1
+            id2tree_reward[index] = {}
+            id2level_indices[index] = defaultdict(set)
 
-    # check 完毕 树没问题
-    # breakpoint()
-    # 基于未来回报重新计算树的节点的reward，
-    for id,tree_reward in id2tree_reward.items():
-        assert len(tree_reward) == 16
-        for i in range(len(tree_reward)-1,-1,-1):
-            if i < 8:
-                return_future = (tree_reward[2 * i] + tree_reward[2 * i + 1]) / 2
-                tree_reward[i] = tree_reward[i] + 0.5 * return_future
-    # 归一化
-    for id,tree_reward in id2tree_reward.items():
-        cal_part(tree_reward,2,4,norm_adv_by_std_in_grpo,epsilon)
-        cal_part(tree_reward,4,8,norm_adv_by_std_in_grpo,epsilon)
-        cal_part(tree_reward,8,16,norm_adv_by_std_in_grpo,epsilon)
-    
-    # 返回优势树
+        for depth, (node_idx, reward_value) in enumerate(path, start=1):
+            existing_value = id2tree_reward[index].get(node_idx)
+            if existing_value is not None:
+                assert existing_value == reward_value
+            else:
+                id2tree_reward[index][node_idx] = float(reward_value)
+            id2level_indices[index][depth].add(node_idx)
+
+    for tree_id, tree_reward in id2tree_reward.items():
+        level_indices = id2level_indices[tree_id]
+        for depth in range(max_depth - 1, 0, -1):
+            for node_idx in sorted(level_indices.get(depth, []), reverse=True):
+                child_indices = [branch_per_node * node_idx + child_offset for child_offset in range(branch_per_node)]
+                valid_child_values = [tree_reward[child_idx] for child_idx in child_indices if child_idx in tree_reward]
+                if valid_child_values:
+                    tree_reward[node_idx] = float(tree_reward[node_idx] + 0.5 * np.mean(valid_child_values))
+
+        for depth in range(1, max_depth + 1):
+            current_level = sorted(level_indices.get(depth, []))
+            if not current_level:
+                continue
+            if len(current_level) == 1:
+                tree_reward[current_level[0]] = 0.0
+                continue
+            _normalize_level(tree_reward, current_level, norm_adv_by_std_in_grpo, epsilon)
+
     return id2tree_reward
 
 @register_adv_est(AdvantageEstimator.GRPO_TREE_DYNAMIC_ADVANTAGE)
@@ -267,7 +303,9 @@ def compute_grpo_tree_dynamic_advantage(
     response_mask: torch.Tensor,
     index: np.ndarray,
     step_reward: torch.Tensor,
-    traj_end_index, # 这个的类型写什么?
+    traj_end_index,
+    branch_per_node,
+    max_depth,
     epsilon: float = 1e-6,
     norm_adv_by_std_in_grpo: bool = True,
     config: Optional[AlgoConfig] = None,
@@ -304,63 +342,51 @@ def compute_grpo_tree_dynamic_advantage(
         Returns: `(torch.Tensor)`
             shape is (bs, response_length)
     """
-    scores = token_level_rewards.sum(dim=-1)
-    
-    id2score = defaultdict(list)
-    id2mean = {}
-    id2std = {}
     list_step_reward = step_reward.tolist()
-    id2tree_adv= cal_adv_based_step_reward(
+    if len(branch_per_node) == 0 or len(max_depth) == 0:
+        raise ValueError("branch_per_node and max_depth must be non-empty")
+    branch_per_node_value = int(branch_per_node[0])
+    max_depth_value = int(max_depth[0])
+    if any(int(value) != branch_per_node_value for value in branch_per_node):
+        raise ValueError("All branch_per_node values in a batch must be the same")
+    if any(int(value) != max_depth_value for value in max_depth):
+        raise ValueError("All max_depth values in a batch must be the same")
+
+    id2tree_adv = cal_adv_based_step_reward(
         indexs=index,
         step_rewards=list_step_reward,
         traj_end_indexs=traj_end_index,
+        branch_per_node=branch_per_node_value,
+        max_depth=max_depth_value,
         norm_adv_by_std_in_grpo=norm_adv_by_std_in_grpo,
-        epsilon=epsilon
+        epsilon=epsilon,
     )
 
     with torch.no_grad():
-        # 3. 将优势非均匀到每个token
         batch_size, seq_len = response_mask.shape
-
-        # 获取device
         device = token_level_rewards.device
-        
-        # 创建返回分数，形状和response_mask一样
+
         return_scores = torch.zeros(batch_size, seq_len, 1, device=device)
-        final_score = torch.tensor([0], dtype=torch.float32)
-        # 确保step_reward是tensor并移到正确设备
-        if isinstance(step_reward, np.ndarray):
-            step_reward = torch.from_numpy(step_reward).to(device)
-        elif isinstance(step_reward, torch.Tensor):
-            step_reward = step_reward.to(device)
-        
+
         for i in range(batch_size):
             tree_adv = id2tree_adv[index[i]]
-            traj_end_index_i = traj_end_index[i]
-            current_custom_advs = []
-            for _ in range(3):
-                current_custom_advs = [tree_adv[traj_end_index_i]] + current_custom_advs
-                traj_end_index_i = traj_end_index_i // 2
-            current_idx = 0  # 用于step_reward的索引
-            state = 'mask'
+            path = _collect_path_to_root(int(traj_end_index[i]), branch_per_node_value)
+            current_custom_advs = [tree_adv[node_idx] for node_idx in path]
+            current_idx = 0
+            state = "mask"
+            final_score = torch.tensor([0.0], dtype=torch.float32, device=device)
 
             for j in range(seq_len):
-                # 检查当前token是否在mask中
-                if response_mask[i][j].eq(0).item():  # mask
-                    if state == 'no_mask':
+                if response_mask[i][j].eq(0).item():
+                    if state == "no_mask":
                         current_idx += 1
-                    state = 'mask'
+                    state = "mask"
                 else:
-                    # 检查索引边界
                     assert current_idx < len(current_custom_advs)
-                    state = 'no_mask'
-                    final_score = current_custom_advs[current_idx]
-                # 计算最终分数
-                # 注意：response_mask[i][j]是0或1的标量值
+                    state = "no_mask"
+                    final_score = torch.tensor([current_custom_advs[current_idx]], dtype=torch.float32, device=device)
                 return_scores[i][j] = final_score
-        # 将return_scores的形状调整为(batch_size, seq_len)
         return_scores = return_scores.squeeze(-1)
-        # breakpoint()
     return return_scores, return_scores
 
 @register_adv_est(AdvantageEstimator.GAE)  # or simply: @register_adv_est("gae")

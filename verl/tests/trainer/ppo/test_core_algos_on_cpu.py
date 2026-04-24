@@ -19,6 +19,7 @@ import numpy as np
 import pytest
 import torch
 
+from trae_verl.trainer.ppo import core_algos_tree_dynamic_advantage as tree_core_algos
 import verl.trainer.ppo.core_algos
 from verl.trainer.ppo.core_algos import (
     compute_gae_advantage_return,
@@ -257,6 +258,206 @@ def test_rloo_and_vectorized_equivalence(batch_size: int, seq_len: int, num_grou
     assert ret1.shape == ret2.shape == (batch_size, seq_len)
     assert torch.allclose(adv1, adv2, rtol=1e-5, atol=1e-6)
     assert torch.allclose(ret1, ret2, rtol=1e-5, atol=1e-6)
+
+
+def _legacy_cal_part(tree_reward, begin, end, norm_adv_by_std_in_grpo, epsilon):
+    level_arr = torch.tensor(tree_reward[begin:end], dtype=torch.float32)
+    for i in range(begin, end):
+        if norm_adv_by_std_in_grpo:
+            tree_reward[i] = (tree_reward[i] - torch.mean(level_arr)) / (torch.std(level_arr) + epsilon)
+        else:
+            tree_reward[i] = tree_reward[i] - torch.mean(level_arr)
+
+
+def _legacy_cal_adv_based_step_reward(indexs, step_rewards, traj_end_indexs, norm_adv_by_std_in_grpo, epsilon):
+    id2tree_reward = {}
+    for i in range(len(indexs)):
+        index = indexs[i]
+        step_reward = step_rewards[i]
+        traj_end_index = traj_end_indexs[i]
+
+        if index not in id2tree_reward:
+            id2tree_reward[index] = [-100 for _ in range(16)]
+
+        step_index = -1
+        while traj_end_index > 1:
+            if id2tree_reward[index][traj_end_index] != -100:
+                assert id2tree_reward[index][traj_end_index] == step_reward[step_index]
+            else:
+                id2tree_reward[index][traj_end_index] = step_reward[step_index]
+            traj_end_index = traj_end_index // 2
+            step_index -= 1
+
+    for _, tree_reward in id2tree_reward.items():
+        for i in range(len(tree_reward) - 1, -1, -1):
+            if i < 8:
+                return_future = (tree_reward[2 * i] + tree_reward[2 * i + 1]) / 2
+                tree_reward[i] = tree_reward[i] + 0.5 * return_future
+
+    for _, tree_reward in id2tree_reward.items():
+        _legacy_cal_part(tree_reward, 2, 4, norm_adv_by_std_in_grpo, epsilon)
+        _legacy_cal_part(tree_reward, 4, 8, norm_adv_by_std_in_grpo, epsilon)
+        _legacy_cal_part(tree_reward, 8, 16, norm_adv_by_std_in_grpo, epsilon)
+
+    return id2tree_reward
+
+
+def _legacy_compute_grpo_tree_dynamic_advantage(
+    token_level_rewards,
+    response_mask,
+    index,
+    step_reward,
+    traj_end_index,
+    epsilon=1e-6,
+    norm_adv_by_std_in_grpo=True,
+):
+    id2tree_adv = _legacy_cal_adv_based_step_reward(
+        indexs=index,
+        step_rewards=step_reward.tolist(),
+        traj_end_indexs=traj_end_index,
+        norm_adv_by_std_in_grpo=norm_adv_by_std_in_grpo,
+        epsilon=epsilon,
+    )
+
+    batch_size, seq_len = response_mask.shape
+    return_scores = torch.zeros(batch_size, seq_len, 1, device=token_level_rewards.device)
+    final_score = torch.tensor([0.0], dtype=torch.float32, device=token_level_rewards.device)
+    for i in range(batch_size):
+        tree_adv = id2tree_adv[index[i]]
+        traj_end_index_i = traj_end_index[i]
+        current_custom_advs = []
+        for _ in range(3):
+            current_custom_advs = [tree_adv[traj_end_index_i]] + current_custom_advs
+            traj_end_index_i = traj_end_index_i // 2
+        current_idx = 0
+        state = "mask"
+
+        for j in range(seq_len):
+            if response_mask[i][j].eq(0).item():
+                if state == "no_mask":
+                    current_idx += 1
+                state = "mask"
+            else:
+                assert current_idx < len(current_custom_advs)
+                state = "no_mask"
+                final_score = torch.tensor([current_custom_advs[current_idx]], dtype=torch.float32, device=token_level_rewards.device)
+            return_scores[i][j] = final_score
+    return_scores = return_scores.squeeze(-1)
+    return return_scores, return_scores
+
+
+def _make_binary_tree_step_rewards():
+    node_reward = {
+        2: 1.0,
+        3: 2.0,
+        4: 0.5,
+        5: 1.5,
+        6: 2.5,
+        7: 3.5,
+        8: -1.0,
+        9: 0.0,
+        10: 1.0,
+        11: 2.0,
+        12: -2.0,
+        13: -1.0,
+        14: 0.5,
+        15: 1.5,
+    }
+    leaf_indices = np.arange(8, 16, dtype=np.int64)
+    step_rewards = []
+    for leaf_idx in leaf_indices:
+        path = []
+        current_idx = int(leaf_idx)
+        while current_idx > 1:
+            path.append(node_reward[current_idx])
+            current_idx //= 2
+        step_rewards.append(path[::-1])
+    return leaf_indices, torch.tensor(step_rewards, dtype=torch.float32)
+
+
+def test_tree_dynamic_advantage_matches_legacy_binary_depth3():
+    leaf_indices, step_reward = _make_binary_tree_step_rewards()
+    batch_size = len(leaf_indices)
+    response_mask = torch.tensor([[1, 1, 0, 1, 0, 1]] * batch_size, dtype=torch.float32)
+    token_level_rewards = torch.ones_like(response_mask)
+    index = np.array(["tree_a"] * batch_size, dtype=object)
+    branch_per_node = np.array([2] * batch_size, dtype=object)
+    max_depth = np.array([3] * batch_size, dtype=object)
+
+    legacy_adv, legacy_ret = _legacy_compute_grpo_tree_dynamic_advantage(
+        token_level_rewards=token_level_rewards,
+        response_mask=response_mask,
+        index=index,
+        step_reward=step_reward,
+        traj_end_index=leaf_indices,
+    )
+    new_adv, new_ret = tree_core_algos.compute_grpo_tree_dynamic_advantage(
+        token_level_rewards=token_level_rewards,
+        response_mask=response_mask,
+        index=index,
+        step_reward=step_reward,
+        traj_end_index=leaf_indices,
+        branch_per_node=branch_per_node,
+        max_depth=max_depth,
+    )
+
+    assert torch.allclose(new_adv, legacy_adv, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(new_ret, legacy_ret, rtol=1e-5, atol=1e-6)
+
+
+def test_tree_dynamic_advantage_generalizes_to_branch3_depth4():
+    branch_per_node = 3
+    max_depth = 4
+    leaf_start = branch_per_node**max_depth
+    leaf_end = 2 * (branch_per_node**max_depth)
+    leaf_indices = np.arange(leaf_start, leaf_end, dtype=np.int64)
+
+    step_rewards = []
+    for leaf_idx in leaf_indices:
+        path = tree_core_algos._collect_path_to_root(int(leaf_idx), branch_per_node)
+        step_rewards.append([float(node_idx % 7 - 3) for node_idx in path])
+    step_reward_tensor = torch.tensor(step_rewards, dtype=torch.float32)
+
+    tree_adv = tree_core_algos.cal_adv_based_step_reward(
+        indexs=np.array(["tree_b"] * len(leaf_indices), dtype=object),
+        step_rewards=step_reward_tensor.tolist(),
+        traj_end_indexs=leaf_indices,
+        branch_per_node=branch_per_node,
+        max_depth=max_depth,
+        norm_adv_by_std_in_grpo=True,
+        epsilon=1e-6,
+    )["tree_b"]
+
+    for depth in range(1, max_depth + 1):
+        level_start = branch_per_node**depth
+        level_end = 2 * (branch_per_node**depth)
+        level_values = torch.tensor(
+            [tree_adv[node_idx] for node_idx in range(level_start, level_end)],
+            dtype=torch.float32,
+        )
+        assert torch.isclose(level_values.mean(), torch.tensor(0.0), atol=1e-5)
+        assert torch.isclose(level_values.std(), torch.tensor(1.0), atol=1e-4)
+
+    response_mask = torch.tensor([[1, 0, 1, 0, 1, 0, 1, 1]] * len(leaf_indices), dtype=torch.float32)
+    token_level_rewards = torch.ones_like(response_mask)
+    advantages, returns = tree_core_algos.compute_grpo_tree_dynamic_advantage(
+        token_level_rewards=token_level_rewards,
+        response_mask=response_mask,
+        index=np.array(["tree_b"] * len(leaf_indices), dtype=object),
+        step_reward=step_reward_tensor,
+        traj_end_index=leaf_indices,
+        branch_per_node=np.array([branch_per_node] * len(leaf_indices), dtype=object),
+        max_depth=np.array([max_depth] * len(leaf_indices), dtype=object),
+    )
+
+    assert advantages.shape == returns.shape == response_mask.shape
+    sample_path = tree_core_algos._collect_path_to_root(int(leaf_indices[0]), branch_per_node)
+    sample_values = [tree_adv[node_idx] for node_idx in sample_path]
+    sample_row = advantages[0].tolist()
+    assert sample_row[0] == pytest.approx(sample_values[0], abs=1e-6)
+    assert sample_row[2] == pytest.approx(sample_values[1], abs=1e-6)
+    assert sample_row[4] == pytest.approx(sample_values[2], abs=1e-6)
+    assert sample_row[6] == pytest.approx(sample_values[3], abs=1e-6)
 
 
 @pytest.mark.parametrize(

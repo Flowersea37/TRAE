@@ -138,7 +138,9 @@ def compute_advantage(
         advantages, returns = compute_grpo_tree_dynamic_advantage(
             token_level_rewards=data.batch["token_level_rewards"],
             step_reward=data.non_tensor_batch["step_reward"],
-            traj_end_index=data.non_tensor_batch['traj_end_index'],
+            traj_end_index=data.non_tensor_batch["traj_end_index"],
+            branch_per_node=data.non_tensor_batch["branch_per_node"],
+            max_depth=data.non_tensor_batch["max_depth"],
             response_mask=grpo_calculation_mask,
             index=data.non_tensor_batch["uid"],
             norm_adv_by_std_in_grpo=norm_adv_by_std_in_grpo,
