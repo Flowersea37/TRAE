@@ -40,9 +40,10 @@ based on the rewards computed in the previous
 steps
 
 <p align="center">
-  <img alt="intro" src="public/overview.png" />
+  <img alt="intro" src="public/methods.png" />
   <i>
-  The overview of TRAE training pipeline.
+  llustration of TRAE framework. Our method utilizes tree-structured training with a redesigned advantage
+  estimation. 
   </i>
 </p>
 
