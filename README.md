@@ -1,20 +1,60 @@
-# Escaping the Echo Trap: On Credit Assignment Failure in Multi-turn LLM Self-Reflection
+<h1 align="center" style="margin-top: 10px;">Tree Search for LLM Agent Reinforcement Learning</h1>
 
+<p align="center">
+  Linxuan Du*<sup>1</sup>,
+  Guangquan Xue*<sup>1</sup>,
+  Xiaobo Liang<sup>1</sup>,
+  Qipeng Huang<sup>1</sup>,
+  Yuyang Ding<sup>1</sup>,
+  Xinyu Shi<sup>1</sup>,
+  Yijun Zhang<sup>3</sup>,
+  Ji Qi<sup>3</sup>,
+  Wenpeng Zhu<sup>3</sup>,
+  Juntao Li<sup>1</sup>,
+  Min Zhang<sup>1,2</sup>,
+  <br>
+  <sup>1</sup>Soochow University <br>
+  <sup>2</sup>Key Laboratory of General Artificial Intelligence and Large Models in Provincial Universities, Soochow University <br>
+  <sup>3</sup>China Mobile (Suzhou) Software Technology Co., Ltd. Suzhou 215000, China
+  <br>
+</p>
+
+<div align="center"> 
+
+[![Paper](https://img.shields.io/badge/Paper-arXiv-b5212f.svg?style=flat-square&logo=arxiv)]()
+[![Paper](https://img.shields.io/badge/Paper-Hugging%20Face-yellow?style=flat-square&logo=huggingface)]()
+
+</div>
 
 ## Overview
-## Results
+To address behavior collapse in multi-turn reflec-
+tion, we propose a method that assigns distinct
+advantages to different turns within a trajectory,
+enabling targeted optimization at the turn level, as
+illustrated in Figure 3. Our approach consists of
+three steps: (1) designing a more accurate turn-
+level reward estimation for multi-turn reflection;
+(2) obtaining this estimation via tree-structured roll-
+outs; and (3) assigning turn-specific advantages
+based on the rewards computed in the previous
+steps
+
+<p align="center">
+  <img alt="intro" src="public/overview.png" />
+  <i>
+  The overview of TRAE training pipeline.
+  </i>
+</p>
 
 ## Links
 
-- [Escaping the Echo Trap: On Credit Assignment Failure in Multi-turn LLM Self-Reflection](#escaping-the-echo-trap-on-credit-assignment-failure-in-multi-turn-llm-self-reflection)
-  - [Overview](#overview)
-  - [Results](#results)
-  - [Links](#links)
-  - [Installation](#installation)
-  - [Training](#training)
-  - [Evaluation](#evaluation)
-  - [Acknowledgement](#acknowledgement)
-  - [Citations](#citations)
+- [Overview](#overview)
+- [Links](#links)
+- [Installation](#installation)
+- [Training](#training)
+- [Evaluation](#evaluation)
+- [Acknowledgement](#acknowledgement)
+- [Citations](#citations)
 
 ## Installation
 ```bash
@@ -51,7 +91,7 @@ Plase download the evaluation data by your own, and refer to the data prepocess 
 
 (2) Run Evaluation.
 ```bash
-# 导出训练后模型
+# merge model
 bash scripts/verl_merge_fsdb_2.sh
 
 # eval
